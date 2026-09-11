@@ -1,53 +1,73 @@
 # fanta-reminder
 
-Base MVP Expo (iOS/Android) per reminder fantacalcio prima della giornata di Serie A.
+MVP Expo (focus Android) per promemoria Fantacalcio prima dell'inizio giornata Serie A.
 
-## Avvio
+## Setup
 
 ```bash
 npm install
-npx expo start
 ```
 
-## Web + CORS (football-data)
+1. Copia `.env.example` in `.env`
+2. Imposta `EXPO_PUBLIC_FOOTBALL_DATA_API_KEY`
 
-Per usare dati reali su web, avvia il proxy locale in un terminale:
+Senza API key l'app usa fallback demo.
+
+## Run
+
+Avvio generico Expo:
 
 ```bash
-npm run proxy
+npm run start
 ```
 
-Poi avvia la web app in un secondo terminale:
+Android:
+
+```bash
+npm run android
+```
+
+Web (avvia automaticamente anche proxy locale CORS):
 
 ```bash
 npm run web
 ```
 
-## Build Android APK (EAS)
+Proxy stand-alone (solo se serve separato):
 
 ```bash
-eas login
-eas build -p android --profile preview-apk
+npm run proxy
 ```
 
-Il profilo `preview-apk` genera un file `.apk` installabile.
+## Build APK (EAS)
 
-## Refresh giornaliero calendario (Android)
+Login:
 
-L'app registra un task background che prova a sincronizzare il calendario una volta al giorno e ripianifica le notifiche locali.
+```bash
+npx eas-cli login
+```
 
-## Config
+Build APK installabile:
 
-1. Copia `.env.example` in `.env`
-2. Imposta `EXPO_PUBLIC_FOOTBALL_DATA_API_KEY`
+```bash
+npx eas-cli build -p android --profile preview-apk
+```
 
-Senza API key, l'app usa dati demo locali.
+## Funzionalità attuali
 
-## Struttura
+- calendario Serie A con cache locale
+- refresh giornaliero calendario in background (best effort)
+- notifiche locali pianificate
+- notifiche extra opzionali (intervallo + numero max)
+- test notifiche immediate in-app
+- sidebar desktop + drawer mobile
 
-- `App.tsx`: UI MVP (Home, Impostazioni, Calendario)
-- `src/services/serieA.ts`: lettura calendario Serie A
-- `src/services/notifications.ts`: permessi push + token Expo
-- `src/storage/preferences.ts`: preferenze locali
-- `supabase/sql/schema.sql`: schema DB iniziale
-- `supabase/functions/*`: placeholder edge functions
+## Architettura `src`
+
+- `src/app` orchestrazione pagina app
+- `src/hooks` stato/azioni applicative
+- `src/common` componenti/constant/util riusabili e generici
+- `src/components` UI di dominio (navigation, sections)
+- `src/services` integrazioni esterne e processi app (sync, notifiche, background)
+- `src/storage` persistenza locale
+- `src/types` tipi condivisi
