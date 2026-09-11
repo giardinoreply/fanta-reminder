@@ -21,13 +21,14 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "concurrently": "^10.0.5",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
+    "web": "concurrently -k \"npm:proxy\" \"expo start --web\"",
     "proxy": "node ./scripts/seriea-proxy.mjs"
   },
   "private": true,
