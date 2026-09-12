@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 import type { MatchdayInfo } from "../../services/serieA";
 import { formatDateTime } from "../../common/utils/date";
 import { sectionStyles } from "./sharedStyles";
+import { colors } from "../../common/theme/tokens";
 
 type CalendarSectionProps = {
   calendar: MatchdayInfo[];
@@ -26,16 +27,16 @@ export function CalendarSection({ calendar }: CalendarSectionProps) {
 const styles = StyleSheet.create({
   listItem: {
     borderBottomWidth: 1,
-    borderBottomColor: "#e8edf8",
+    borderBottomColor: colors.border,
     paddingVertical: 12,
     gap: 2,
   },
   value: {
     fontWeight: "800",
-    color: "#d71921",
+    color: colors.biancorossoSoft,
   },
   labelStrong: {
-    color: "#1f2b45",
+    color: colors.textPrimary,
     fontWeight: "700",
   },
 });

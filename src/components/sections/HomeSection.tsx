@@ -1,7 +1,8 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+﻿import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { MatchdayInfo, MatchdaysSource } from "../../services/serieA";
 import { formatCountdown, formatDateTime } from "../../common/utils/date";
 import { sectionStyles } from "./sharedStyles";
+import { colors, radius, spacing } from "../../common/theme/tokens";
 
 type HomeSectionProps = {
   isTablet: boolean;
@@ -10,6 +11,7 @@ type HomeSectionProps = {
   dataSource: MatchdaysSource;
   lastSyncAt: string | null;
   notificationState: string;
+  showEnableNotificationsButton: boolean;
   showDoneButton: boolean;
   onEnableNotifications: () => void;
   onDoneReminderGroup: () => void;
@@ -22,15 +24,34 @@ export function HomeSection({
   dataSource,
   lastSyncAt,
   notificationState,
+  showEnableNotificationsButton,
   showDoneButton,
   onEnableNotifications,
   onDoneReminderGroup,
 }: HomeSectionProps) {
   return (
     <View style={[styles.layout, isTablet && styles.layoutWide]}>
+      <View style={[sectionStyles.card, styles.actionCard, isTablet && styles.actionCardWide]}>
+        <View style={styles.actionsCenter}>
+          {showEnableNotificationsButton && (
+            <Pressable onPress={onEnableNotifications} style={[sectionStyles.primaryButton, styles.actionButton]}>
+              <Text style={[sectionStyles.primaryText, styles.centerText]}>Abilita notifiche</Text>
+            </Pressable>
+          )}
+          {showDoneButton && (
+            <Pressable onPress={onDoneReminderGroup} style={[sectionStyles.secondaryButton, styles.actionButton]}>
+              <Text style={[sectionStyles.secondaryText, styles.centerText]}>Ho inserito la formazione per questa giornata</Text>
+            </Pressable>
+          )}
+        </View>
+        <Text style={styles.stateLabel}>Stato notifiche: {notificationState.toUpperCase()}</Text>
+      </View>
+
       <View style={[sectionStyles.card, styles.heroCard, isTablet && styles.heroCardWide]}>
         <Text style={[sectionStyles.sectionTitle, styles.heroTitle]}>Prossima giornata</Text>
-        <Text style={styles.heroMeta}>Fonte: {dataSource} {lastSyncAt ? `- sync ${formatDateTime(lastSyncAt)}` : ""}</Text>
+        <Text style={styles.heroMeta}>
+          Fonte: {dataSource} {lastSyncAt ? `- sync ${formatDateTime(lastSyncAt)}` : ""}
+        </Text>
         {!nextMatchday && <Text style={styles.heroLabel}>Nessun dato disponibile.</Text>}
         {nextMatchday && (
           <>
@@ -42,21 +63,6 @@ export function HomeSection({
           </>
         )}
       </View>
-
-      <View style={[sectionStyles.card, styles.actionCard, isTablet && styles.actionCardWide]}>
-        <TouchableOpacity style={sectionStyles.primaryButton} onPress={onEnableNotifications}>
-          <Text style={sectionStyles.primaryText}>Abilita notifiche</Text>
-        </TouchableOpacity>
-        {showDoneButton && (
-          <TouchableOpacity style={sectionStyles.secondaryButton} onPress={onDoneReminderGroup}>
-            <Text style={sectionStyles.secondaryText}>Fatto (stop ripetizioni)</Text>
-          </TouchableOpacity>
-        )}
-        <View style={sectionStyles.statePill}>
-          <Text style={sectionStyles.statePillText}>Stato notifiche: {notificationState.toUpperCase()}</Text>
-        </View>
-        <Text style={sectionStyles.label}>Controlla nella tab Impostazioni i minuti di anticipo.</Text>
-      </View>
     </View>
   );
 }
@@ -64,56 +70,75 @@ export function HomeSection({
 const styles = StyleSheet.create({
   layout: {
     width: "100%",
-    gap: 14,
+    gap: spacing.md,
   },
   layoutWide: {
     flexDirection: "row",
     alignItems: "stretch",
   },
   heroCard: {
-    backgroundColor: "#0f1f3f",
-    borderColor: "#1f3970",
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
   },
   heroCardWide: {
     flex: 2,
   },
   heroTitle: {
-    color: "#ffffff",
+    color: colors.textPrimary,
   },
   heroMeta: {
-    color: "#8ca8db",
+    color: colors.textMuted,
     fontWeight: "600",
     fontSize: 12,
   },
   heroLabel: {
-    color: "#cfddff",
+    color: colors.textSecondary,
     fontWeight: "500",
   },
   badge: {
     alignSelf: "flex-start",
-    backgroundColor: "#d71921",
-    color: "#ffffff",
+    backgroundColor: colors.biancorosso,
+    color: colors.white,
     fontWeight: "800",
     fontSize: 12,
     letterSpacing: 0.7,
-    borderRadius: 999,
+    borderRadius: radius.pill,
     paddingVertical: 4,
     paddingHorizontal: 10,
   },
   bigMatch: {
     fontSize: 24,
     fontWeight: "800",
-    color: "#ffffff",
+    color: colors.textPrimary,
     lineHeight: 30,
   },
   countdown: {
-    color: "#8cc2ff",
+    color: colors.nerazzurroSoft,
     fontWeight: "800",
     fontSize: 16,
     marginTop: 4,
   },
   actionCard: {
     justifyContent: "center",
+  },
+  actionsCenter: {
+    width: "100%",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  actionButton: {
+    width: "100%",
+    maxWidth: 360,
+    alignSelf: "center",
+  },
+  centerText: {
+    textAlign: "center",
+  },
+  stateLabel: {
+    marginTop: spacing.xs,
+    textAlign: "center",
+    color: colors.textSecondary,
+    fontWeight: "600",
   },
   actionCardWide: {
     flex: 1,

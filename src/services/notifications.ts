@@ -90,8 +90,14 @@ export async function requestPushPermission(): Promise<PushPermissionResult> {
     return { granted: false, expoPushToken: null };
   }
 
-  const token = await Notifications.getExpoPushTokenAsync();
-  return { granted: true, expoPushToken: token.data };
+  // For local scheduled notifications, Expo push token is optional.
+  // In Android dev builds without Firebase setup, token retrieval may fail.
+  try {
+    const token = await Notifications.getExpoPushTokenAsync();
+    return { granted: true, expoPushToken: token.data };
+  } catch {
+    return { granted: true, expoPushToken: null };
+  }
 }
 
 function getReminderTimestamp(matchday: MatchdayInfo, preferences: UserPreferences): number {

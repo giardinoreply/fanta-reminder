@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { bootstrapLocalBackend } from "../services/localBackend";
 import { registerDailyBackgroundSync } from "../services/backgroundSync";
 import { savePreferences, type UserPreferences } from "../storage/preferences";
@@ -6,6 +6,7 @@ import { type MatchdayInfo, type MatchdaysSource } from "../services/serieA";
 import {
   buildReminderGroupId,
   clearTestNotifications,
+  getNotificationPermissionStatus,
   markReminderGroupDone,
   requestPushPermission,
   scheduleImmediateTestNotifications,
@@ -32,9 +33,12 @@ export function useAppController() {
   const [inputRepeatMinutes, setInputRepeatMinutes] = useState("3");
   const [inputMaxNotifications, setInputMaxNotifications] = useState("0");
   const [notificationState, setNotificationState] = useState("non richiesto");
+  const [notificationsPermissionGranted, setNotificationsPermissionGranted] = useState(false);
   const [dataSource, setDataSource] = useState<MatchdaysSource>("fallback");
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [testState, setTestState] = useState("nessun test inviato");
+  const [showSavedFeedback, setShowSavedFeedback] = useState(false);
+  const saveFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     async function boot() {
@@ -51,8 +55,15 @@ export function useAppController() {
         setCalendar(bootData.upcoming);
         setDataSource(bootData.source);
         setLastSyncAt(bootData.syncedAt);
-        if (bootData.scheduledReminders > 0) {
+        const permissionStatus = await getNotificationPermissionStatus();
+        const granted = permissionStatus === "granted";
+        setNotificationsPermissionGranted(granted);
+        if (!granted) {
+          setNotificationState("permesso notifiche non concesso");
+        } else if (bootData.scheduledReminders > 0) {
           setNotificationState(`abilitato (${bootData.scheduledReminders} notifiche pianificate)`);
+        } else {
+          setNotificationState("permesso concesso (nessuna futura)");
         }
       } catch {
         setError("Errore caricamento dati.");
@@ -68,6 +79,31 @@ export function useAppController() {
     void registerDailyBackgroundSync();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (saveFeedbackTimeoutRef.current) {
+        clearTimeout(saveFeedbackTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!notificationsPermissionGranted) {
+      return;
+    }
+
+    async function rescheduleReminders() {
+      const scheduled = await scheduleMatchdayReminders(calendar, preferences);
+      if (scheduled.scheduledNotifications > 0) {
+        setNotificationState(`abilitato (${scheduled.scheduledNotifications} notifiche pianificate)`);
+      } else {
+        setNotificationState("permesso concesso (nessuna futura)");
+      }
+    }
+
+    void rescheduleReminders();
+  }, [calendar, notificationsPermissionGranted, preferences]);
+
   const notificationTime = useMemo(() => {
     if (!nextMatchday) {
       return null;
@@ -78,7 +114,43 @@ export function useAppController() {
     return new Date(matchTime - lockMs - beforeMs).toISOString();
   }, [nextMatchday, preferences.leagueLockMinutes, preferences.minutesBefore]);
 
+  const isSaveDisabled = useMemo(() => {
+    const minutesBefore = Number.parseInt(inputMinutes, 10);
+    const leagueLockMinutes = Number.parseInt(inputLockMinutes, 10);
+    const repeatIntervalMinutes = Number.parseInt(inputRepeatMinutes, 10);
+    const maxExtraNotifications = Number.parseInt(inputMaxNotifications, 10);
+
+    if (
+      Number.isNaN(minutesBefore) ||
+      Number.isNaN(leagueLockMinutes) ||
+      Number.isNaN(repeatIntervalMinutes) ||
+      Number.isNaN(maxExtraNotifications)
+    ) {
+      return true;
+    }
+
+    return (
+      minutesBefore === preferences.minutesBefore &&
+      leagueLockMinutes === preferences.leagueLockMinutes &&
+      repeatIntervalMinutes === preferences.repeatIntervalMinutes &&
+      maxExtraNotifications === preferences.maxExtraNotifications
+    );
+  }, [
+    inputLockMinutes,
+    inputMaxNotifications,
+    inputMinutes,
+    inputRepeatMinutes,
+    preferences.leagueLockMinutes,
+    preferences.maxExtraNotifications,
+    preferences.minutesBefore,
+    preferences.repeatIntervalMinutes,
+  ]);
+
   async function onSaveSettings() {
+    if (isSaveDisabled) {
+      return;
+    }
+
     const minutesBefore = Number.parseInt(inputMinutes, 10);
     const leagueLockMinutes = Number.parseInt(inputLockMinutes, 10);
     const repeatIntervalMinutes = Number.parseInt(inputRepeatMinutes, 10);
@@ -101,26 +173,23 @@ export function useAppController() {
     const next = { minutesBefore, leagueLockMinutes, repeatIntervalMinutes, maxExtraNotifications };
     await savePreferences(next);
     setPreferences(next);
-    const scheduled = await scheduleMatchdayReminders(calendar, next);
-    if (scheduled.scheduledNotifications > 0) {
-      setNotificationState(`abilitato (${scheduled.scheduledNotifications} notifiche pianificate)`);
-    } else {
-      setNotificationState("abilitato (nessuna futura)");
-    }
     setError(null);
+    setShowSavedFeedback(true);
+    if (saveFeedbackTimeoutRef.current) {
+      clearTimeout(saveFeedbackTimeoutRef.current);
+    }
+    saveFeedbackTimeoutRef.current = setTimeout(() => {
+      setShowSavedFeedback(false);
+    }, 2000);
   }
 
   async function onEnableNotifications() {
     const result = await requestPushPermission();
     if (result.granted) {
-      const scheduled = await scheduleMatchdayReminders(calendar, preferences);
-      if (scheduled.scheduledNotifications > 0) {
-        setNotificationState(`abilitato (${scheduled.scheduledNotifications} notifiche pianificate)`);
-      } else {
-        setNotificationState("abilitato");
-      }
+      setNotificationsPermissionGranted(true);
+      setNotificationState("permesso notifiche concesso");
     } else {
-      setNotificationState("negato");
+      setNotificationState("permesso notifiche negato");
     }
   }
 
@@ -173,9 +242,12 @@ export function useAppController() {
     inputMaxNotifications,
     setInputMaxNotifications,
     notificationState,
+    notificationsPermissionGranted,
     dataSource,
     lastSyncAt,
     testState,
+    showSavedFeedback,
+    isSaveDisabled,
     notificationTime,
     onSaveSettings,
     onEnableNotifications,

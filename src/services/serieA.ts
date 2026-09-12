@@ -3,8 +3,10 @@ import { Platform } from "react-native";
 
 const FOOTBALL_API_URL = "https://api.football-data.org/v4/competitions/SA/matches";
 const DEFAULT_PROXY_URL = "http://localhost:8787/matches";
-const MATCHDAYS_CACHE_KEY = "fanta_matchdays_cache_v1";
+const MATCHDAYS_CACHE_KEY = "fanta_matchdays_cache_v2";
 const MATCHDAYS_SYNC_INTERVAL_MS = 1000 * 60 * 60 * 24;
+const FETCH_TIMEOUT_MS = 10_000;
+const LOG_TAG = "[serieA]";
 
 export type MatchdayInfo = {
   matchday: number;
@@ -75,12 +77,12 @@ function fallbackMatchdays(): MatchdayInfo[] {
 }
 
 function groupFirstMatchPerMatchday(matches: FootballApiMatch[]): MatchdayInfo[] {
-  const future = matches
-    .filter((m) => new Date(m.utcDate).getTime() > Date.now())
+  const sorted = matches
+    .filter((m) => Boolean(m.matchday) && Boolean(m.utcDate))
     .sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime());
 
   const byMatchday = new Map<number, MatchdayInfo>();
-  for (const match of future) {
+  for (const match of sorted) {
     if (!byMatchday.has(match.matchday)) {
       byMatchday.set(match.matchday, {
         matchday: match.matchday,
@@ -119,6 +121,22 @@ function isCacheFresh(syncedAt: string): boolean {
   return Date.now() - new Date(syncedAt).getTime() < MATCHDAYS_SYNC_INTERVAL_MS;
 }
 
+function logInfo(message: string, meta?: Record<string, unknown>): void {
+  if (meta) {
+    console.log(`${LOG_TAG} ${message}`, meta);
+    return;
+  }
+  console.log(`${LOG_TAG} ${message}`);
+}
+
+function logWarn(message: string, meta?: Record<string, unknown>): void {
+  if (meta) {
+    console.warn(`${LOG_TAG} ${message}`, meta);
+    return;
+  }
+  console.warn(`${LOG_TAG} ${message}`);
+}
+
 async function fetchMatchdays(): Promise<{ items: MatchdayInfo[]; source: Exclude<MatchdaysSource, "cache"> }> {
   const apiKey = getFootballDataApiKey();
   const proxyUrl = getProxyUrl();
@@ -126,6 +144,7 @@ async function fetchMatchdays(): Promise<{ items: MatchdayInfo[]; source: Exclud
 
   try {
     if (!apiKey && !(isWeb && proxyUrl)) {
+      logWarn("Nessuna API key disponibile, uso fallback");
       return { items: fallbackMatchdays(), source: "fallback" };
     }
 
@@ -135,19 +154,29 @@ async function fetchMatchdays(): Promise<{ items: MatchdayInfo[]; source: Exclud
       headers["X-Auth-Token"] = apiKey;
     }
 
-    const res = await fetch(targetUrl, { headers });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    logInfo("Avvio fetch calendario", { platform: Platform.OS, targetUrl, timeoutMs: FETCH_TIMEOUT_MS });
+    const res = await fetch(targetUrl, { headers, signal: controller.signal }).finally(() => {
+      clearTimeout(timeoutId);
+    });
 
     if (!res.ok) {
+      logWarn("Fetch fallita con status non OK", { status: res.status, statusText: res.statusText });
       return { items: fallbackMatchdays(), source: "fallback" };
     }
 
     const data = (await res.json()) as FootballApiResponse;
     const grouped = groupFirstMatchPerMatchday(data.matches ?? []);
     if (grouped.length > 0) {
+      logInfo("Fetch completata da API", { groupedMatchdays: grouped.length });
       return { items: grouped, source: "api" };
     }
+    logWarn("API senza giornate future, uso fallback");
     return { items: fallbackMatchdays(), source: "fallback" };
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logWarn("Eccezione fetch calendario, uso fallback", { message });
     return { items: fallbackMatchdays(), source: "fallback" };
   }
 }
@@ -157,7 +186,8 @@ export async function getMatchdaysSnapshot(limit = 10): Promise<MatchdaysSnapsho
   const hasApiKey = Boolean(getFootballDataApiKey());
 
   if (cache && isCacheFresh(cache.syncedAt) && !(cache.source === "fallback" && hasApiKey)) {
-    const upcoming = cache.items.slice(0, limit);
+    logInfo("Uso cache fresca", { source: cache.source, syncedAt: cache.syncedAt });
+    const upcoming = cache.items.filter((item) => new Date(item.firstMatchAt).getTime() > Date.now()).slice(0, limit);
     return {
       nextMatchday: upcoming[0] ?? null,
       upcoming,
@@ -170,7 +200,8 @@ export async function getMatchdaysSnapshot(limit = 10): Promise<MatchdaysSnapsho
   const nowIso = new Date().toISOString();
 
   if (fetched.source === "fallback" && cache && cache.items.length > 0) {
-    const upcoming = cache.items.slice(0, limit);
+    logWarn("Fetch in fallback, riuso cache esistente", { syncedAt: cache.syncedAt });
+    const upcoming = cache.items.filter((item) => new Date(item.firstMatchAt).getTime() > Date.now()).slice(0, limit);
     return {
       nextMatchday: upcoming[0] ?? null,
       upcoming,
@@ -180,7 +211,8 @@ export async function getMatchdaysSnapshot(limit = 10): Promise<MatchdaysSnapsho
   }
 
   await saveMatchdaysCache({ items: fetched.items, source: fetched.source, syncedAt: nowIso });
-  const upcoming = fetched.items.slice(0, limit);
+  logInfo("Cache aggiornata", { source: fetched.source, syncedAt: nowIso, items: fetched.items.length });
+  const upcoming = fetched.items.filter((item) => new Date(item.firstMatchAt).getTime() > Date.now()).slice(0, limit);
   return {
     nextMatchday: upcoming[0] ?? null,
     upcoming,

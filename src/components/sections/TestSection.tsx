@@ -1,4 +1,4 @@
-import { Text, TouchableOpacity, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { sectionStyles } from "./sharedStyles";
 
 type TestSectionProps = {
@@ -14,12 +14,12 @@ export function TestSection({ testState, onRunTestNow, onClearTests }: TestSecti
       <Text style={sectionStyles.label}>Avvia un test immediato senza attendere la vera giornata.</Text>
       <Text style={sectionStyles.label}>Testa subito il numero di notifiche extra e l'intervallo impostato.</Text>
 
-      <TouchableOpacity style={sectionStyles.primaryButton} onPress={onRunTestNow}>
+      <Pressable onPress={onRunTestNow} style={sectionStyles.primaryButton}>
         <Text style={sectionStyles.primaryText}>Esegui test ora</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={sectionStyles.secondaryButton} onPress={onClearTests}>
+      </Pressable>
+      <Pressable onPress={onClearTests} style={sectionStyles.secondaryButton}>
         <Text style={sectionStyles.secondaryText}>Pulisci test pianificati</Text>
-      </TouchableOpacity>
+      </Pressable>
       <View style={sectionStyles.statePill}>
         <Text style={sectionStyles.statePillText}>Stato test: {testState.toUpperCase()}</Text>
       </View>
