@@ -5,20 +5,21 @@ export const sectionStyles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: spacing.sm,
+    padding: spacing.lg,
+    gap: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
     width: "100%",
   },
   sectionTitle: {
-    fontSize: 21,
-    fontWeight: "700",
+    fontSize: 24,
+    fontWeight: "800",
     color: colors.textPrimary,
   },
   label: {
     color: colors.textSecondary,
     fontWeight: "500",
+    lineHeight: 20,
   },
   input: {
     borderWidth: 1,
@@ -30,10 +31,10 @@ export const sectionStyles = StyleSheet.create({
     color: colors.textPrimary,
   },
   primaryButton: {
-    backgroundColor: colors.biancorosso,
+    backgroundColor: colors.nerazzurro,
     borderRadius: radius.md,
     overflow: "hidden",
-    paddingVertical: 12,
+    paddingVertical: 13,
     paddingHorizontal: 16,
     alignSelf: "flex-start",
   },
@@ -42,7 +43,7 @@ export const sectionStyles = StyleSheet.create({
     fontWeight: "800",
   },
   secondaryButton: {
-    backgroundColor: colors.bgAlt,
+    backgroundColor: colors.surfaceSoft,
     borderRadius: radius.md,
     overflow: "hidden",
     borderWidth: 1,
@@ -52,7 +53,7 @@ export const sectionStyles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   secondaryText: {
-    color: colors.textPrimary,
+    color: colors.textSecondary,
     fontWeight: "800",
   },
   statePill: {
@@ -65,7 +66,7 @@ export const sectionStyles = StyleSheet.create({
     backgroundColor: colors.bgAlt,
   },
   statePillText: {
-    color: colors.textPrimary,
+    color: colors.textSecondary,
     fontWeight: "700",
   },
 });

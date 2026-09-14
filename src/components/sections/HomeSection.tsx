@@ -1,5 +1,5 @@
-﻿import { Pressable, StyleSheet, Text, View } from "react-native";
-import type { MatchdayInfo, MatchdaysSource } from "../../services/serieA";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import type { MatchdayInfo } from "../../services/serieA";
 import { formatCountdown, formatDateTime } from "../../common/utils/date";
 import { sectionStyles } from "./sharedStyles";
 import { colors, radius, spacing } from "../../common/theme/tokens";
@@ -8,9 +8,6 @@ type HomeSectionProps = {
   isTablet: boolean;
   nextMatchday: MatchdayInfo | null;
   notificationTime: string | null;
-  dataSource: MatchdaysSource;
-  lastSyncAt: string | null;
-  notificationState: string;
   showEnableNotificationsButton: boolean;
   showDoneButton: boolean;
   onEnableNotifications: () => void;
@@ -21,47 +18,57 @@ export function HomeSection({
   isTablet,
   nextMatchday,
   notificationTime,
-  dataSource,
-  lastSyncAt,
-  notificationState,
   showEnableNotificationsButton,
   showDoneButton,
   onEnableNotifications,
   onDoneReminderGroup,
 }: HomeSectionProps) {
+  const hasNotificationPermission = !showEnableNotificationsButton;
+
   return (
     <View style={[styles.layout, isTablet && styles.layoutWide]}>
-      <View style={[sectionStyles.card, styles.actionCard, isTablet && styles.actionCardWide]}>
-        <View style={styles.actionsCenter}>
-          {showEnableNotificationsButton && (
-            <Pressable onPress={onEnableNotifications} style={[sectionStyles.primaryButton, styles.actionButton]}>
-              <Text style={[sectionStyles.primaryText, styles.centerText]}>Abilita notifiche</Text>
-            </Pressable>
-          )}
-          {showDoneButton && (
-            <Pressable onPress={onDoneReminderGroup} style={[sectionStyles.secondaryButton, styles.actionButton]}>
-              <Text style={[sectionStyles.secondaryText, styles.centerText]}>Ho inserito la formazione per questa giornata</Text>
-            </Pressable>
-          )}
-        </View>
-        <Text style={styles.stateLabel}>Stato notifiche: {notificationState.toUpperCase()}</Text>
-      </View>
-
       <View style={[sectionStyles.card, styles.heroCard, isTablet && styles.heroCardWide]}>
+        <Text style={styles.kicker}>MATCHDAY COMMAND</Text>
         <Text style={[sectionStyles.sectionTitle, styles.heroTitle]}>Prossima giornata</Text>
-        <Text style={styles.heroMeta}>
-          Fonte: {dataSource} {lastSyncAt ? `- sync ${formatDateTime(lastSyncAt)}` : ""}
-        </Text>
+        <Text style={styles.heroMeta}>Stream calendario attivo</Text>
         {!nextMatchday && <Text style={styles.heroLabel}>Nessun dato disponibile.</Text>}
         {nextMatchday && (
           <>
             <Text style={styles.badge}>GIORNATA {nextMatchday.matchday}</Text>
-            <Text style={styles.bigMatch}>{nextMatchday.homeTeam} - {nextMatchday.awayTeam}</Text>
+            <Text style={styles.bigMatch}>{nextMatchday.homeTeam} vs {nextMatchday.awayTeam}</Text>
             <Text style={styles.heroLabel}>Prima partita: {formatDateTime(nextMatchday.firstMatchAt)}</Text>
-            {notificationTime && <Text style={styles.heroLabel}>Reminder: {formatDateTime(notificationTime)}</Text>}
-            <Text style={styles.countdown}>Mancano {formatCountdown(nextMatchday.firstMatchAt)}</Text>
+            {notificationTime && <Text style={styles.heroLabel}>Reminder base: {formatDateTime(notificationTime)}</Text>}
+            <Text style={styles.countdown}>Tra {formatCountdown(nextMatchday.firstMatchAt)}</Text>
           </>
         )}
+      </View>
+
+      <View
+        style={[
+          sectionStyles.card,
+          styles.actionCard,
+          hasNotificationPermission && styles.actionCardGranted,
+          isTablet && styles.actionCardWide,
+        ]}
+      >
+        <Text style={styles.actionsTitle}>Automazioni notifica</Text>
+        <Text style={styles.actionsCopy}>
+          {hasNotificationPermission
+            ? "Permesso concesso."
+            : "Gestisci permessi e blocca subito i reminder quando hai gia inviato la formazione."}
+        </Text>
+        <View style={styles.actionsCenter}>
+          {showEnableNotificationsButton && (
+            <Pressable onPress={onEnableNotifications} style={[sectionStyles.primaryButton, styles.actionButton]}>
+              <Text style={[sectionStyles.primaryText, styles.centerText]}>ABILITA NOTIFICHE</Text>
+            </Pressable>
+          )}
+          {showDoneButton && (
+            <Pressable onPress={onDoneReminderGroup} style={[sectionStyles.secondaryButton, styles.actionButton]}>
+              <Text style={[sectionStyles.secondaryText, styles.centerText]}>SEGNA GIORNATA COMPLETATA</Text>
+            </Pressable>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -77,18 +84,24 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
   },
   heroCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: "#0f223d",
+    borderColor: colors.nerazzurroSoft,
   },
   heroCardWide: {
     flex: 2,
+  },
+  kicker: {
+    color: colors.nerazzurro,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
   },
   heroTitle: {
     color: colors.textPrimary,
   },
   heroMeta: {
     color: colors.textMuted,
-    fontWeight: "600",
+    fontWeight: "700",
     fontSize: 12,
   },
   heroLabel: {
@@ -107,19 +120,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   bigMatch: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "800",
     color: colors.textPrimary,
-    lineHeight: 30,
+    lineHeight: 32,
   },
   countdown: {
-    color: colors.nerazzurroSoft,
+    color: colors.nerazzurro,
     fontWeight: "800",
     fontSize: 16,
     marginTop: 4,
   },
   actionCard: {
-    justifyContent: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#2a1020",
+    borderColor: colors.biancorossoSoft,
+  },
+  actionCardGranted: {
+    backgroundColor: "#122b1f",
+    borderColor: colors.success,
+  },
+  actionsTitle: {
+    color: colors.textPrimary,
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  actionsCopy: {
+    color: colors.textSecondary,
+    lineHeight: 21,
   },
   actionsCenter: {
     width: "100%",
@@ -133,12 +161,6 @@ const styles = StyleSheet.create({
   },
   centerText: {
     textAlign: "center",
-  },
-  stateLabel: {
-    marginTop: spacing.xs,
-    textAlign: "center",
-    color: colors.textSecondary,
-    fontWeight: "600",
   },
   actionCardWide: {
     flex: 1,

@@ -10,6 +10,7 @@ npm install
 
 1. Copia `.env.example` in `.env`
 2. Imposta `EXPO_PUBLIC_FOOTBALL_DATA_API_KEY`
+3. (Opzionale, consigliato) imposta `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_ANON_KEY` per usare backend notifiche
 
 Senza API key l'app usa fallback demo.
 
@@ -60,6 +61,9 @@ npx eas-cli build -p android --profile preview-apk
 - notifiche locali pianificate
 - notifiche extra opzionali (intervallo + numero max)
 - test notifiche immediate in-app
+- integrazione backend Supabase per registrazione device/preferenze e dismiss giornata
+- endpoint backend per stato giornata + invio formazione Fantacalcio
+- tab `Lineup` con editor visuale formazione: `Leggi stato`, selezione Titolari/Panchina per ruolo, invio senza JSON manuale
 - sidebar desktop + drawer mobile
 
 ## Architettura `src`

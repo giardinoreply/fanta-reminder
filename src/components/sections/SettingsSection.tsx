@@ -37,67 +37,83 @@ export function SettingsSection({
 
   return (
     <View style={sectionStyles.card}>
-      <Text style={sectionStyles.sectionTitle}>Promemoria</Text>
+      <Text style={styles.kicker}>AUTOMATION RULES</Text>
+      <Text style={sectionStyles.sectionTitle}>Impostazioni reminder</Text>
+      <Text style={sectionStyles.label}>Configura anticipo, lock lega e schema di ripetizione notifiche.</Text>
 
-      <Text style={sectionStyles.label} onPress={() => minutesRef.current?.focus()}>
-        Minuti prima della chiusura formazione
-      </Text>
-      <TextInput
-        ref={minutesRef}
-        value={inputMinutes}
-        onChangeText={onChangeMinutes}
-        keyboardType="number-pad"
-        style={sectionStyles.input}
-        placeholder="120"
-        placeholderTextColor={colors.textMuted}
-      />
-
-      <Text style={sectionStyles.label} onPress={() => lockMinutesRef.current?.focus()}>
-        Minuti anticipo chiusura lega (default 15)
-      </Text>
-      <TextInput
-        ref={lockMinutesRef}
-        value={inputLockMinutes}
-        onChangeText={onChangeLockMinutes}
-        keyboardType="number-pad"
-        style={sectionStyles.input}
-        placeholder="15"
-        placeholderTextColor={colors.textMuted}
-      />
-
-      <Text style={sectionStyles.label} onPress={() => maxNotificationsRef.current?.focus()}>
-        Numero max notifiche extra (opzionale, 0 = solo una)
-      </Text>
-      <TextInput
-        ref={maxNotificationsRef}
-        value={inputMaxNotifications}
-        onChangeText={onChangeMaxNotifications}
-        keyboardType="number-pad"
-        style={sectionStyles.input}
-        placeholder="0"
-        placeholderTextColor={colors.textMuted}
-      />
-
-      {Number.parseInt(inputMaxNotifications, 10) > 0 && (
-        <>
-          <Text style={sectionStyles.label} onPress={() => repeatMinutesRef.current?.focus()}>
-            Ogni quanti minuti ripetere (opzionale)
+      <View style={styles.grid}>
+        <View style={styles.field}>
+          <Text style={sectionStyles.label} onPress={() => minutesRef.current?.focus()}>
+            Minuti prima della chiusura formazione
           </Text>
           <TextInput
-            ref={repeatMinutesRef}
-            value={inputRepeatMinutes}
-            onChangeText={onChangeRepeatMinutes}
+            ref={minutesRef}
+            value={inputMinutes}
+            onChangeText={onChangeMinutes}
             keyboardType="number-pad"
             style={sectionStyles.input}
-            placeholder="3"
+            placeholder="120"
             placeholderTextColor={colors.textMuted}
           />
-        </>
+        </View>
+
+        <View style={styles.field}>
+          <Text style={sectionStyles.label} onPress={() => lockMinutesRef.current?.focus()}>
+            Minuti anticipo chiusura lega
+          </Text>
+          <TextInput
+            ref={lockMinutesRef}
+            value={inputLockMinutes}
+            onChangeText={onChangeLockMinutes}
+            keyboardType="number-pad"
+            style={sectionStyles.input}
+            placeholder="15"
+            placeholderTextColor={colors.textMuted}
+          />
+        </View>
+      </View>
+
+      <View style={styles.grid}>
+        <View style={styles.field}>
+          <Text style={sectionStyles.label} onPress={() => maxNotificationsRef.current?.focus()}>
+            Max notifiche extra
+          </Text>
+          <TextInput
+            ref={maxNotificationsRef}
+            value={inputMaxNotifications}
+            onChangeText={onChangeMaxNotifications}
+            keyboardType="number-pad"
+            style={sectionStyles.input}
+            placeholder="0"
+            placeholderTextColor={colors.textMuted}
+          />
+        </View>
+
+        {Number.parseInt(inputMaxNotifications, 10) > 0 && (
+          <View style={styles.field}>
+            <Text style={sectionStyles.label} onPress={() => repeatMinutesRef.current?.focus()}>
+              Intervallo ripetizione (minuti)
+            </Text>
+            <TextInput
+              ref={repeatMinutesRef}
+              value={inputRepeatMinutes}
+              onChangeText={onChangeRepeatMinutes}
+              keyboardType="number-pad"
+              style={sectionStyles.input}
+              placeholder="3"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+        )}
+      </View>
+
+      {Number.parseInt(inputMaxNotifications, 10) <= 0 && (
+        <Text style={sectionStyles.label}>Con valore 0 viene inviata solo la notifica principale.</Text>
       )}
 
       <View style={styles.saveRow}>
         <Pressable onPress={onSave} disabled={isSaveDisabled} style={[sectionStyles.primaryButton, isSaveDisabled && styles.saveDisabled]}>
-          <Text style={sectionStyles.primaryText}>Salva</Text>
+          <Text style={sectionStyles.primaryText}>SALVA</Text>
         </Pressable>
         {showSavedFeedback && <Text style={styles.savedText}>Salvato!</Text>}
       </View>
@@ -106,6 +122,18 @@ export function SettingsSection({
 }
 
 const styles = StyleSheet.create({
+  kicker: {
+    color: colors.nerazzurro,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+  },
+  grid: {
+    gap: spacing.sm,
+  },
+  field: {
+    gap: spacing.xs,
+  },
   saveRow: {
     flexDirection: "row",
     alignItems: "center",

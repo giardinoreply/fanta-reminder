@@ -1,18 +1,11 @@
 import { StatusBar } from "expo-status-bar";
-import {
-  ActivityIndicator,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { AppHeader } from "../common/components/AppHeader";
 import { SCREEN_ITEMS } from "../common/constants/screens";
+import { formatDateTime } from "../common/utils/date";
 import { CalendarSection } from "../components/sections/CalendarSection";
 import { HomeSection } from "../components/sections/HomeSection";
+import { LineupSection } from "../components/sections/LineupSection";
 import { SettingsSection } from "../components/sections/SettingsSection";
 import { TestSection } from "../components/sections/TestSection";
 import { useAppController } from "../hooks/useAppController";
@@ -21,35 +14,49 @@ import { colors, radius, spacing } from "../common/theme/tokens";
 export function AppRoot() {
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
-  const isDesktop = width >= 1024;
-  const pagePadding = isDesktop ? 24 : isTablet ? 20 : 14;
-  const maxContentWidth = isDesktop ? 1080 : 920;
+  const pagePadding = isTablet ? 22 : 14;
+  const maxContentWidth = 1260;
 
   const app = useAppController();
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
-      <AppHeader isTablet={isTablet} />
+      <StatusBar style="dark" />
+      <AppHeader />
 
       <View style={[styles.pageContainer, { paddingHorizontal: pagePadding, maxWidth: maxContentWidth }]}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.tabsScroll}
-          contentContainerStyle={styles.tabsRow}
-        >
-          {SCREEN_ITEMS.map((item) => {
-            const selected = app.screen === item.key;
-            return (
-              <Pressable key={item.key} onPress={() => app.setScreen(item.key)} style={[styles.tabButton, selected && styles.tabButtonActive]}>
-                <Text style={[styles.tabText, selected && styles.tabTextActive]}>{item.label}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <View style={styles.infoRibbon}>
+          <View style={styles.infoChip}>
+            <Text style={styles.infoChipLabel}>Ultimo aggiornamento</Text>
+            <Text style={styles.infoChipValue}>{app.lastSyncAt ? formatDateTime(app.lastSyncAt) : "N/D"}</Text>
+          </View>
+          <View style={styles.infoChip}>
+            <Text style={styles.infoChipLabel}>Permesso notifiche</Text>
+            <Text style={styles.infoChipValue}>{app.notificationsPermissionGranted ? "ATTIVO" : "NON ATTIVO"}</Text>
+          </View>
+        </View>
 
-        <ScrollView style={styles.contentScroll} contentContainerStyle={styles.body}>
+        <View style={styles.sectionCard}>
+          <View style={styles.tabsCard}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.tabsScroll}
+              contentContainerStyle={styles.tabsRow}
+            >
+              {SCREEN_ITEMS.map((item) => {
+                const selected = app.screen === item.key;
+                return (
+                  <Pressable key={item.key} onPress={() => app.setScreen(item.key)} style={[styles.tabButton, selected && styles.tabButtonActive]}>
+                    <Text style={[styles.tabText, selected && styles.tabTextActive]}>{item.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          <ScrollView style={styles.contentScroll} contentContainerStyle={styles.body}>
+
           {app.loading && (
             <View style={styles.loadingWrap}>
               <ActivityIndicator size="small" color={colors.nerazzurroSoft} />
@@ -63,9 +70,6 @@ export function AppRoot() {
               isTablet={isTablet}
               nextMatchday={app.nextMatchday}
               notificationTime={app.notificationTime}
-              dataSource={app.dataSource}
-              lastSyncAt={app.lastSyncAt}
-              notificationState={app.notificationState}
               showEnableNotificationsButton={!app.notificationsPermissionGranted}
               showDoneButton={Boolean(app.preferences.maxExtraNotifications > 0 && app.nextMatchday)}
               onEnableNotifications={app.onEnableNotifications}
@@ -94,7 +98,38 @@ export function AppRoot() {
           {!app.loading && app.screen === "test" && (
             <TestSection testState={app.testState} onRunTestNow={app.onRunTestNow} onClearTests={app.onClearTests} />
           )}
-        </ScrollView>
+
+          {!app.loading && app.screen === "lineup" && (
+            <LineupSection
+              username={app.lineupUsername}
+              password={app.lineupPassword}
+              idSquadra={app.lineupIdSquadra}
+              idComp={app.lineupIdComp}
+              division={app.lineupDivision}
+              modulo={app.lineupModulo}
+              playersByRole={app.lineupPlayersByRole}
+              assignments={app.lineupAssignments}
+              validation={app.lineupValidation}
+              lineupState={app.lineupState}
+              lineupBusy={app.lineupBusy}
+              lineupLocked={app.lineupLocked}
+              lineupDayState={app.lineupDayState}
+              lineupFetchError={app.lineupFetchError}
+              isFetchDisabled={app.isLineupFetchDisabled}
+              onChangeUsername={app.setLineupUsername}
+              onChangePassword={app.setLineupPassword}
+              onChangeIdSquadra={app.setLineupIdSquadra}
+              onChangeIdComp={app.setLineupIdComp}
+              onChangeDivision={app.setLineupDivision}
+              onChangeModulo={app.setLineupModulo}
+              onSetAssignment={app.onSetLineupAssignment}
+              onFetchStatus={app.onFetchLineupStatus}
+              onSuggestLineup={app.onSuggestLineup}
+              onSubmitLineup={app.onSubmitLineup}
+            />
+          )}
+          </ScrollView>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -109,28 +144,40 @@ const styles = StyleSheet.create({
     flex: 1,
     width: "100%",
     alignSelf: "center",
-    position: "relative",
+    paddingBottom: spacing.sm,
+    gap: spacing.md,
+  },
+  sectionCard: {
+    flex: 1,
+    backgroundColor: "#0d1a2e",
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    paddingTop: spacing.sm,
+    gap: spacing.sm,
+    overflow: "hidden",
   },
   tabsRow: {
     flexDirection: "row",
-    gap: spacing.xs,
-    marginBottom: spacing.md,
-    paddingBottom: 2,
     alignItems: "center",
+    justifyContent: "center",
+    flexGrow: 1,
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
   },
   tabsScroll: {
+    width: "100%",
     flexGrow: 0,
-    flexShrink: 0,
   },
   tabButton: {
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
     overflow: "hidden",
     paddingHorizontal: spacing.sm,
-    paddingVertical: 7,
-    backgroundColor: colors.surfaceSoft,
+    paddingVertical: 9,
+    backgroundColor: "#162b46",
     borderWidth: 1,
     borderColor: colors.border,
-    minHeight: 34,
+    minHeight: 38,
     justifyContent: "center",
   },
   tabButtonActive: {
@@ -140,7 +187,7 @@ const styles = StyleSheet.create({
   tabText: {
     color: colors.textSecondary,
     fontWeight: "700",
-    fontSize: 13,
+    fontSize: 14,
   },
   tabTextActive: {
     color: colors.white,
@@ -151,9 +198,50 @@ const styles = StyleSheet.create({
   },
   body: {
     flexGrow: 1,
-    paddingVertical: 2,
+    paddingTop: spacing.xs,
+    paddingHorizontal: spacing.md,
     gap: spacing.md,
     paddingBottom: spacing.md,
+  },
+  infoRibbon: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    flexWrap: "wrap",
+  },
+  infoChip: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: "48%",
+    minWidth: 0,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: "#11243f",
+    borderRadius: radius.md,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.sm,
+    minWidth: 140,
+    gap: 2,
+  },
+  tabsCard: {
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: "#11243f",
+    paddingVertical: spacing.xs,
+  },
+  infoChipLabel: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+  infoChipValue: {
+    color: colors.nerazzurro,
+    fontWeight: "800",
+    fontSize: 12,
   },
   loadingWrap: {
     flexDirection: "row",

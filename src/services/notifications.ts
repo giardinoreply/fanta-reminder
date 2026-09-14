@@ -90,13 +90,18 @@ export async function requestPushPermission(): Promise<PushPermissionResult> {
     return { granted: false, expoPushToken: null };
   }
 
+  const token = await getExpoPushTokenSafe();
+  return { granted: true, expoPushToken: token };
+}
+
+export async function getExpoPushTokenSafe(): Promise<string | null> {
   // For local scheduled notifications, Expo push token is optional.
   // In Android dev builds without Firebase setup, token retrieval may fail.
   try {
     const token = await Notifications.getExpoPushTokenAsync();
-    return { granted: true, expoPushToken: token.data };
+    return token.data;
   } catch {
-    return { granted: true, expoPushToken: null };
+    return null;
   }
 }
 
@@ -190,7 +195,7 @@ export async function scheduleMatchdayReminders(
         const id = await Notifications.scheduleNotificationAsync({
           content: {
             title: "Fanta Deadline",
-            body: `Giornata ${item.matchday.matchday}: Ricordati la formazione, cretino.`,
+            body: `Giornata ${item.matchday.matchday}: controlla e salva la tua formazione.`,
             data: {
               matchday: item.matchday.matchday,
               reminderGroupId,
